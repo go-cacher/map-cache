@@ -20,13 +20,14 @@ type cacheData struct {
 }
 
 var NotFoundError = errors.New("data not found")
+var WrongTypeError = errors.New("cast wrong type error")
 
 func init() {
 	cacher.Register(&MapCache{})
 }
 
 /*Get the exist value */
-func (m MapCache) Get(key string) (interface{}, error) {
+func (m MapCache) Get(key string) ([]byte, error) {
 	if v, b := m.cache.Load(key); b {
 		switch vv := v.(type) {
 		case *cacheData:
@@ -34,14 +35,17 @@ func (m MapCache) Get(key string) (interface{}, error) {
 				m.cache.Delete(key)
 				return nil, NotFoundError
 			}
-			return vv.value, nil
+			if v, b := vv.value.([]byte); b {
+				return v, nil
+			}
+			return nil, WrongTypeError
 		}
 	}
 	return nil, NotFoundError
 }
 
 //get a value with a default value
-func (m MapCache) GetD(key string, v interface{}) interface{} {
+func (m MapCache) GetD(key string, v []byte) []byte {
 	if ret, e := m.Get(key); e == nil {
 		return ret
 	}
@@ -49,7 +53,7 @@ func (m MapCache) GetD(key string, v interface{}) interface{} {
 }
 
 // set a value to cache
-func (m *MapCache) Set(key string, val interface{}) error {
+func (m *MapCache) Set(key string, val []byte) error {
 	m.cache.Store(key, &cacheData{
 		value: val,
 		life:  nil,
@@ -57,7 +61,7 @@ func (m *MapCache) Set(key string, val interface{}) error {
 	return nil
 }
 
-func (m *MapCache) SetWithTTL(key string, val interface{}, ttl int64) error {
+func (m *MapCache) SetWithTTL(key string, val []byte, ttl int64) error {
 	t := time.Now().Add(time.Duration(ttl))
 	m.cache.Store(key, &cacheData{
 		value: val,
@@ -87,8 +91,8 @@ func (m *MapCache) Clear() error {
 }
 
 /*GetMultiple get multiple values */
-func (m MapCache) GetMultiple(keys ...string) (map[string]interface{}, error) {
-	vals := make(map[string]interface{}, len(keys))
+func (m MapCache) GetMultiple(keys ...string) (map[string][]byte, error) {
+	vals := make(map[string][]byte, len(keys))
 	for _, key := range keys {
 		if ret, e := m.Get(key); e == nil {
 			vals[key] = ret
@@ -99,7 +103,7 @@ func (m MapCache) GetMultiple(keys ...string) (map[string]interface{}, error) {
 }
 
 /*SetMultiple set multiple values */
-func (m *MapCache) SetMultiple(values map[string]interface{}) error {
+func (m *MapCache) SetMultiple(values map[string][]byte) error {
 	for k, v := range values {
 		e := m.Set(k, v)
 		if e != nil {
