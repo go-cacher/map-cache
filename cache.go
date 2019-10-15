@@ -1,4 +1,4 @@
-package map_cache
+package cache
 
 import (
 	"errors"
