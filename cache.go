@@ -22,10 +22,6 @@ type cacheData struct {
 var NotFoundError = errors.New("data not found")
 var WrongTypeError = errors.New("cast wrong type error")
 
-func init() {
-	cacher.Register(&MapCache{})
-}
-
 /*Get the exist value */
 func (m MapCache) Get(key string) ([]byte, error) {
 	if v, b := m.cache.Load(key); b {
@@ -124,7 +120,7 @@ func (m *MapCache) DeleteMultiple(keys ...string) error {
 	return nil
 }
 
-// NewMapCache ...
-func NewMapCache() *MapCache {
+// New ...
+func New() *MapCache {
 	return &MapCache{}
 }
